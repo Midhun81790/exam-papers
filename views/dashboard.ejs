@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: -250px;
+            background-color: #343a40;
+            padding-top: 20px;
+            transition: left 0.3s ease-in-out;
+            z-index: 1000;
+        }
+        .sidebar a {
+            color: white;
+            display: block;
+            padding: 15px;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #495057;
+        }
+        .content {
+            margin-left: 0;
+            padding: 20px;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        .navbar {
+            background-color: #343a40;
+            color: white;
+            padding: 15px;
+        }
+        .menu-btn {
+            cursor: pointer;
+            font-size: 24px;
+        }
+        .header-title {
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 20px;
+            color: #343a40;
+        }
+        .upload-card {
+            text-align: center;
+            padding: 30px;
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            background-color: white;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .upload-card:hover {
+            background-color: #f1f1f1;
+        }
+        .disabled {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        .admin-badge {
+            background-color: #dc3545;
+            color: white;
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-left: 10px;
+        }
+        .paper-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            margin-bottom: 20px;
+        }
+        .paper-card:hover {
+            transform: translateY(-5px);
+        }
+        .paper-header {
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .paper-img {
+            max-height: 300px;
+            object-fit: contain;
+            margin: 0 auto;
+            display: block;
+            padding: 15px;
+        }
+        .paper-footer {
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+        .paper-details {
+            font-size: 14px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <h4 class="text-center text-light">VIT-AP</h4>
+    <hr class="border-light">
+    <a href="/dashboard"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a>
+    <a href="/all-uploads"><i class="fas fa-images me-2"></i> All Uploads</a>
+    <a href="/dashboard"><i class="fas fa-file-alt me-2"></i> Exam Papers</a>
+    <% if (isAdmin) { %>
+        <a href="/admin" class="text-warning"><i class="fas fa-crown me-2"></i> Admin Panel</a>
+    <% } %>
+    <a href="/logout" class="text-danger"><i class="fas fa-sign-out-alt me-2"></i> Logout</a>
+</div>
+
+<!-- Main Content -->
+<div class="content" id="content">
+    <nav class="navbar d-flex justify-content-between">
+        <span class="menu-btn" onclick="toggleSidebar()">&#9776;</span>
+        <span class="email-text">
+            <%= user.email %>
+            <% if (isAdmin) { %>
+                <span class="admin-badge">Admin</span>
+            <% } %>
+        </span>
+    </nav>
+
+    <!-- Page Header -->
+    <h1 class="header-title">📄 Exam Paper Upload - <span id="examDisplay"></span></h1>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label">Select Batch:</label>
+                <select class="form-select" id="batch" onchange="updateSubjects()">
+                    <option value="">Choose...</option>
+                    <option value="2022">Batch 2022</option>
+                    <option value="2023">Batch 2023</option>
+                    <option value="2024">Batch 2024</option>
+                    <option value="2025">Batch 2025</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Select Subject:</label>
+                <select class="form-select" id="subject" onchange="checkNoneOfAbove()">
+                    <option value="">Choose a batch first...</option>
+                </select>
+                <input type="text" class="form-control mt-2 d-none" id="customSubject" placeholder="Enter subject name">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Select Slot:</label>
+                <select class="form-select" id="slot">
+                    <option value="">Choose...</option>
+                    <option>A1</option><option>A2</option>
+                    <option>B1</option><option>B2</option>
+                    <option>C1</option><option>C2</option>
+                    <option>D1</option><option>D2</option>
+                    <option>E1</option><option>E2</option>
+                    <option>F1</option><option>F2</option>
+                    <option>G1</option><option>G2</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Select Exam:</label>
+                <select class="form-select" id="examType" onchange="updateExamName()">
+                    <option value="">Choose...</option>
+                    <option value="CAT1">CAT 1</option>
+                    <option value="CAT2">CAT 2</option>
+                    <option value="FAT">FAT</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Upload Interface -->
+        <div class="row justify-content-center mt-4">
+            <div class="col-lg-6">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <input type="hidden" id="batchInput" name="batch">
+                    <input type="hidden" id="subjectInput" name="subject">
+                    <input type="hidden" id="customSubjectInput" name="customSubject">
+                    <input type="hidden" id="slotInput" name="slot">
+                    <input type="hidden" id="examTypeInput" name="examType">
+                    
+                    <div class="upload-card shadow disabled" id="uploadCard" onclick="triggerUpload()">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                        <p class="upload-text" id="uploadText">Click to Upload Image</p>
+                        <p class="text-muted small">Supported formats: JPG, PNG, GIF (Max: 5MB)</p>
+                        <input type="file" id="fileInput" name="examPaper" accept="image/*" style="display: none;">
+                    </div>
+                    
+                    <div id="uploadStatus" class="mt-3 text-center d-none">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                id="uploadProgress" 
+                                role="progressbar" 
+                                aria-valuenow="0" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100" 
+                                style="width: 0%"></div>
+                        </div>
+                        <p id="uploadMessage" class="mt-2"></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Uploads -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <h2 class="text-center mb-4">Recent Uploads</h2>
+            </div>
+
+            <% if (papers && papers.length > 0) { %>
+                <% papers.slice(0, 6).forEach(function(paper) { %>
+                    <% papers.slice(0, 6).forEach(function(paper) { %>
+                        <div class="col-md-4">
+                            <div class="paper-card">
+                                <div class="paper-header">
+                                    <span class="fw-bold"><%= paper.examType %> - <%= paper.subject === 'None of the above' ? paper.customSubject : paper.subject %></span>
+                                    <span class="badge bg-primary"><%= paper.batch %> - <%= paper.slot %></span>
+                                </div>
+                                <!-- Make the image clickable -->
+                                <a href="/paper/<%= paper._id %>" class="paper-img-link">
+                                    <img src="<%= paper.path %>" alt="Exam Paper" class="paper-img img-fluid">
+                                </a>
+                                <div class="paper-footer">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="paper-details">
+                                            <small>Uploaded by: <%= paper.uploadedBy %></small><br>
+                                            <small>Date: <%= new Date(paper.uploadedAt).toLocaleDateString() %></small>
+                                        </div>
+                                        <div>
+                                            <!-- Add Fullscreen view button -->
+                                            <button class="btn btn-sm btn-primary me-1" onclick="openFullscreen('<%= paper.path %>')">
+                                                <i class="fas fa-expand"></i>
+                                            </button>
+                                            <% if (isAdmin) { %>
+                                                <button class="btn btn-sm btn-danger" onclick="deletePaper('<%= paper._id %>')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% }); %>
+                <% if (papers.length > 6) { %>
+                    <div class="col-12 text-center mt-3">
+                        <a href="/all-uploads" class="btn btn-outline-primary">View All Uploads</a>
+                    </div>
+                <% } %>
+            <% } else { %>
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        No papers uploaded yet. Be the first to contribute!
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const content = document.getElementById("content");
+        sidebar.style.left = sidebar.style.left === "0px" ? "-250px" : "0px";
+        content.style.marginLeft = sidebar.style.left === "0px" ? "250px" : "0";
+    }
+
+    function updateSubjects() {
+        const batch = document.getElementById("batch").value;
+        const subjectSelect = document.getElementById("subject");
+        const slotSelect = document.getElementById("slot");
+        const examSelect = document.getElementById("examType");
+        const customSubject = document.getElementById("customSubject");
+
+        // Reset all selections
+        subjectSelect.innerHTML = "<option value=''>Choose...</option>";
+        slotSelect.value = "";
+        examSelect.value = "";
+        document.getElementById("examDisplay").textContent = "";
+        customSubject.classList.add("d-none");
+        customSubject.value = "";
+
+        const subjects = {
+            "2022": ["Theory of Computation", "Cloud Computing", "Deep Learning", "Internet of Things", "None of the above"],
+            "2023": ["Mathematics", "Physics", "Chemistry", "None of the above"],
+            "2024": ["Data Structures", "Algorithms", "DBMS", "None of the above"],
+            "2025": ["AI & ML", "Cyber Security", "Cloud Computing", "None of the above"]
+        };
+
+        subjects[batch]?.forEach(subject => {
+            let option = new Option(subject, subject);
+            subjectSelect.add(option);
+        });
+
+        toggleUpload();
+    }
+
+    function checkNoneOfAbove() {
+        const subject = document.getElementById("subject").value;
+        const customSubject = document.getElementById("customSubject");
+        customSubject.classList.toggle("d-none", subject !== "None of the above");
+        toggleUpload();
+    }
+
+    function updateExamName() {
+        document.getElementById("examDisplay").textContent = document.getElementById("examType").value;
+        toggleUpload();
+    }
+
+    function toggleUpload() {
+        const subject = document.getElementById("subject").value;
+        const customSubject = document.getElementById("customSubject").value;
+        const customSubjectField = document.getElementById("customSubject");
+        
+        // Check if all required fields are filled
+        let allSelected = ["batch", "subject", "slot", "examType"].every(id => document.getElementById(id).value);
+        
+        // Additional check for custom subject if "None of the above" is selected
+        if (subject === "None of the above" && !customSubject) {
+            allSelected = false;
+        }
+        
+        document.getElementById("uploadCard").classList.toggle("disabled", !allSelected);
+    }
+
+    function triggerUpload() {
+        if (!document.getElementById("uploadCard").classList.contains("disabled")) {
+            document.getElementById("fileInput").click();
+        }
+    }
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        if (this.files.length === 0) return;
+        
+        const file = this.files[0];
+        
+        // Check if file is an image
+        if (!file.type.startsWith('image/')) {
+            showUploadMessage('Only image files are allowed', 'danger');
+            this.value = ''; // Clear the file input
+            return;
+        }
+        
+        // Check file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showUploadMessage('File size exceeds 5MB limit', 'danger');
+            this.value = ''; // Clear the file input
+            return;
+        }
+        
+        // Show file name in upload card
+        document.getElementById('uploadText').textContent = file.name;
+        
+        // Update hidden form inputs with current selection values
+        document.getElementById('batchInput').value = document.getElementById('batch').value;
+        document.getElementById('subjectInput').value = document.getElementById('subject').value;
+        document.getElementById('customSubjectInput').value = 
+            document.getElementById('subject').value === 'None of the above' ?
+            document.getElementById('customSubject').value : '';
+        document.getElementById('slotInput').value = document.getElementById('slot').value;
+        document.getElementById('examTypeInput').value = document.getElementById('examType').value;
+        
+        // Start upload
+        uploadFile();
+    });
+
+    function uploadFile() {
+        const form = document.getElementById('uploadForm');
+        const formData = new FormData(form);
+        const xhr = new XMLHttpRequest();
+        
+        // Show progress container
+        const uploadStatus = document.getElementById('uploadStatus');
+        uploadStatus.classList.remove('d-none');
+        
+        // Set up progress tracking
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                document.getElementById('uploadProgress').style.width = percentComplete + '%';
+                document.getElementById('uploadProgress').setAttribute('aria-valuenow', percentComplete);
+            }
+        });
+        
+        // Handle response
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                showUploadMessage(response.message, 'success');
+                // Reload page after successful upload after a delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                let errorMessage = 'Upload failed';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    errorMessage = response.message || errorMessage;
+                } catch (e) {
+                    console.error('Error parsing response:', e);
+                }
+                showUploadMessage(errorMessage, 'danger');
+            }
+        });
+        
+        xhr.addEventListener('error', function() {
+            showUploadMessage('Network error occurred', 'danger');
+        });
+        
+        xhr.open('POST', '/upload', true);
+        xhr.send(formData);
+    }
+
+    function showUploadMessage(message, type) {
+        const uploadMessage = document.getElementById('uploadMessage');
+        uploadMessage.textContent = message;
+        uploadMessage.className = 'mt-2 text-' + type;
+    }
+
+    function resetUploadForm() {
+        document.getElementById('fileInput').value = '';
+        document.getElementById('uploadText').textContent = 'Click to Upload Image';
+        document.getElementById('uploadStatus').classList.add('d-none');
+        document.getElementById('uploadProgress').style.width = '0%';
+        document.getElementById('uploadProgress').setAttribute('aria-valuenow', 0);
+    }
+    
+    function deletePaper(paperId) {
+        if (!confirm('Are you sure you want to delete this paper?')) {
+            return;
+        }
+        
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/delete-paper/' + paperId, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                alert('Paper deleted successfully');
+                window.location.reload();
+            } else {
+                alert('Error deleting paper');
+            }
+        };
+        
+        xhr.onerror = function() {
+            alert('Network error occurred');
+        };
+        
+        xhr.send();
+    }
+
+    // Listen for custom subject changes
+    document.getElementById('customSubject').addEventListener('input', toggleUpload);
+</script>
+<div class="modal fade" id="fullscreenModal" tabindex="-1" aria-labelledby="fullscreenModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="fullscreenModalLabel">Exam Paper View</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body d-flex justify-content-center align-items-center bg-dark">
+                <img src="" id="fullscreenImage" class="img-fluid" style="max-height: 90vh; object-fit: contain;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="zoomInBtn">
+                    <i class="fas fa-search-plus"></i> Zoom In
+                </button>
+                <button type="button" class="btn btn-primary" id="zoomOutBtn">
+                    <i class="fas fa-search-minus"></i> Zoom Out
+                </button>
+                <button type="button" class="btn btn-primary" id="resetZoomBtn">
+                    <i class="fas fa-sync"></i> Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    let currentZoom = 1;
+    
+    function openFullscreen(imagePath) {
+        const modal = new bootstrap.Modal(document.getElementById('fullscreenModal'));
+        document.getElementById('fullscreenImage').src = imagePath;
+        modal.show();
+        currentZoom = 1;
+        document.getElementById('fullscreenImage').style.transform = `scale(${currentZoom})`;
+    }
+    
+    // Set up zoom functionality
+    document.getElementById('zoomInBtn').addEventListener('click', function() {
+        if (currentZoom < 3) {
+            currentZoom += 0.25;
+            document.getElementById('fullscreenImage').style.transform = `scale(${currentZoom})`;
+        }
+    });
+    
+    document.getElementById('zoomOutBtn').addEventListener('click', function() {
+        if (currentZoom > 0.5) {
+            currentZoom -= 0.25;
+            document.getElementById('fullscreenImage').style.transform = `scale(${currentZoom})`;
+        }
+    });
+    
+    document.getElementById('resetZoomBtn').addEventListener('click', function() {
+        currentZoom = 1;
+        document.getElementById('fullscreenImage').style.transform = `scale(${currentZoom})`;
+    });
+</script>
+</body>
+</html> 

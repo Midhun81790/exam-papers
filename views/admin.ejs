@@ -1,0 +1,783 @@
+<!-- admin-panel.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .sidebar {
+      width: 250px;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: -250px;
+      background-color: #343a40;
+      padding-top: 20px;
+      transition: left 0.3s ease-in-out;
+      z-index: 1000;
+    }
+    .sidebar a {
+      color: white;
+      display: block;
+      padding: 15px;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+    .sidebar a:hover {
+      background-color: #495057;
+    }
+    .content {
+      margin-left: 0;
+      padding: 20px;
+      transition: margin-left 0.3s ease-in-out;
+    }
+    .navbar {
+      background-color: #343a40;
+      color: white;
+      padding: 15px;
+    }
+    .menu-btn {
+      cursor: pointer;
+      font-size: 24px;
+    }
+    .admin-badge {
+      background-color: #dc3545;
+      color: white;
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 10px;
+      margin-left: 10px;
+    }
+    .tab-content {
+      padding: 20px;
+      background-color: white;
+      border-radius: 0 0 5px 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .user-row:hover {
+      background-color: #f8f9fa;
+    }
+    .user-actions {
+      white-space: nowrap;
+    }
+    .stats-card {
+      transition: transform 0.3s;
+    }
+    .stats-card:hover {
+      transform: translateY(-5px);
+    }
+    .blocked-user {
+      background-color: #ffeeee;
+    }
+    .search-area {
+      margin-bottom: 20px;
+    }
+    .badge-blocked {
+      background-color: #dc3545;
+      color: white;
+    }
+    .badge-active {
+      background-color: #28a745;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <h4 class="text-center text-light">VIT-AP</h4>
+    <hr class="border-light">
+    <a href="/dashboard"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a>
+    <a href="/all-uploads"><i class="fas fa-images me-2"></i> All Uploads</a>
+    <a href="/admin" class="active text-warning"><i class="fas fa-crown me-2"></i> Admin Panel</a>
+    <a href="/logout" class="text-danger"><i class="fas fa-sign-out-alt me-2"></i> Logout</a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content" id="content">
+    <nav class="navbar d-flex justify-content-between">
+      <span class="menu-btn" onclick="toggleSidebar()">&#9776;</span>
+      <span class="email-text">
+        <%= user.email %>
+        <span class="admin-badge">Admin</span>
+      </span>
+    </nav>
+
+    <div class="container mt-4">
+      <h1 class="mb-4">Admin Panel</h1>
+      
+      <!-- Dashboard Statistics -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card bg-primary text-white stats-card">
+            <div class="card-body text-center">
+              <h5 class="card-title">Total Users</h5>
+              <p class="card-text display-4"><%= stats.totalUsers %></p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-success text-white stats-card">
+            <div class="card-body text-center">
+              <h5 class="card-title">Total Papers</h5>
+              <p class="card-text display-4"><%= stats.totalPapers %></p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-info text-white stats-card">
+            <div class="card-body text-center">
+              <h5 class="card-title">Total Feedback</h5>
+              <p class="card-text display-4"><%= stats.totalFeedbacks %></p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-warning text-dark stats-card">
+            <div class="card-body text-center">
+              <h5 class="card-title">Blocked Users</h5>
+              <p class="card-text display-4"><%= stats.blockedUsers || 0 %></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Admin Tabs -->
+      <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="true">
+            <i class="fas fa-users me-2"></i>User Management
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="papers-tab" data-bs-toggle="tab" data-bs-target="#papers" type="button" role="tab" aria-controls="papers" aria-selected="false">
+            <i class="fas fa-file-alt me-2"></i>Paper Management
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="feedback-tab" data-bs-toggle="tab" data-bs-target="#feedback" type="button" role="tab" aria-controls="feedback" aria-selected="false">
+            <i class="fas fa-comment-alt me-2"></i>Feedback
+            <% if(stats.unreadFeedbacks > 0) { %>
+              <span class="badge bg-danger"><%= stats.unreadFeedbacks %></span>
+            <% } %>
+          </button>
+        </li>
+      </ul>
+      
+      <div class="tab-content" id="adminTabContent">
+        <!-- Users Tab Content -->
+        <div class="tab-pane fade show active" id="users" role="tabpanel" aria-labelledby="users-tab">
+          <!-- Add this to the users tab in the admin-panel.ejs file -->
+<!-- Inside the #users tab-pane, add this before the table -->
+<div class="d-flex justify-content-between mb-3">
+  <h4>User Management</h4>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bulkNotificationModal">
+    <i class="fas fa-bell"></i> Send Bulk Notification
+  </button>
+</div>
+
+<!-- Modify the user actions column in the users table -->
+<td class="user-actions">
+  <% if(!user.isAdmin) { %>
+    <div class="btn-group">
+      <button class="btn btn-sm btn-info" onclick="openSendNotificationModal('<%= user._id %>', '<%= user.email %>')">
+        <i class="fas fa-paper-plane"></i> Notify
+      </button>
+      <button class="btn btn-sm <%= user.isBlocked ? 'btn-success' : 'btn-warning' %>" 
+              onclick="toggleUserBlock('<%= user._id %>', <%= !user.isBlocked %>)">
+        <i class="fas <%= user.isBlocked ? 'fa-unlock' : 'fa-ban' %>"></i>
+        <%= user.isBlocked ? 'Unblock' : 'Block' %>
+      </button>
+      <button class="btn btn-sm btn-danger" onclick="confirmDeleteUser('<%= user._id %>')">
+        <i class="fas fa-trash"></i> Delete
+      </button>
+    </div>
+  <% } else { %>
+    <span class="text-muted">Admin account</span>
+  <% } %>
+</td>
+
+<!-- Add these modals at the end of the file, before the closing </body> tag -->
+<!-- Send Notification Modal -->
+<div class="modal fade" id="sendNotificationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Send Notification</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">To:</label>
+          <input type="text" class="form-control" id="notificationRecipient" readonly>
+          <input type="hidden" id="notificationUserId">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Type:</label>
+          <select class="form-select" id="notificationType">
+            <option value="info">Info</option>
+            <option value="success">Success</option>
+            <option value="warning">Warning</option>
+            <option value="error">Error</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Message:</label>
+          <textarea class="form-control" id="notificationMessage" rows="4" placeholder="Enter your notification message..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="sendNotification()">Send Notification</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Notification Modal -->
+<div class="modal fade" id="bulkNotificationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Send Bulk Notification</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Recipients:</label>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="recipientType" id="allUsers" value="all" checked>
+            <label class="form-check-label" for="allUsers">
+              All Users
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="recipientType" id="selectedUsers" value="selected">
+            <label class="form-check-label" for="selectedUsers">
+              Selected Users
+            </label>
+          </div>
+          <div id="userSelectionArea" class="mt-2 d-none">
+            <select class="form-select" id="selectedUserIds" multiple>
+              <% if(locals.users && users.length > 0) { %>
+                <% users.forEach(function(user) { %>
+                  <option value="<%= user._id %>"><%= user.email %></option>
+                <% }); %>
+              <% } %>
+            </select>
+            <small class="text-muted">Hold Ctrl/Cmd to select multiple users</small>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Type:</label>
+          <select class="form-select" id="bulkNotificationType">
+            <option value="info">Info</option>
+            <option value="success">Success</option>
+            <option value="warning">Warning</option>
+            <option value="error">Error</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Message:</label>
+          <textarea class="form-control" id="bulkNotificationMessage" rows="4" placeholder="Enter your notification message..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="sendBulkNotification()">Send Notifications</button>
+      </div>
+    </div>
+  </div>
+</div>
+          <div class="search-area">
+            <div class="input-group">
+              <input type="text" id="userSearchInput" class="form-control" placeholder="Search users by email...">
+              <button class="btn btn-primary" type="button" onclick="searchUsers()">
+                <i class="fas fa-search"></i> Search
+              </button>
+            </div>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Registration Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="userTableBody">
+                <% if(locals.users && users.length > 0) { %>
+                  <% users.forEach(function(user) { %>
+                    <tr class="<%= user.isBlocked ? 'blocked-user' : '' %>" data-user-id="<%= user._id %>">
+                      <td><%= user.email %> <%= user.isAdmin ? '<span class="badge bg-danger">Admin</span>' : '' %></td>
+                      <td><%= user.registeredAt ? new Date(user.registeredAt).toLocaleString() : 'N/A' %></td>
+                      <td>
+                        <span class="badge <%= user.isBlocked ? 'badge-blocked' : 'badge-active' %>">
+                          <%= user.isBlocked ? 'Blocked' : 'Active' %>
+                        </span>
+                      </td>
+                      <td class="user-actions">
+                        <% if(!user.isAdmin) { %>
+                          <button class="btn btn-sm <%= user.isBlocked ? 'btn-success' : 'btn-warning' %>" 
+                                  onclick="toggleUserBlock('<%= user._id %>', <%= !user.isBlocked %>)">
+                            <i class="fas <%= user.isBlocked ? 'fa-unlock' : 'fa-ban' %>"></i>
+                            <%= user.isBlocked ? 'Unblock' : 'Block' %>
+                          </button>
+                          <button class="btn btn-sm btn-danger" onclick="confirmDeleteUser('<%= user._id %>')">
+                            <i class="fas fa-trash"></i> Delete
+                          </button>
+                        <% } else { %>
+                          <span class="text-muted">Admin account</span>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="4" class="text-center">No users found. Try loading the /admin/users route first.</td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Papers Tab Content -->
+        <div class="tab-pane fade" id="papers" role="tabpanel" aria-labelledby="papers-tab">
+          <div class="search-area">
+            <div class="input-group">
+              <input type="text" id="paperSearchInput" class="form-control" placeholder="Search papers by subject, batch...">
+              <button class="btn btn-primary" type="button" onclick="searchPapers()">
+                <i class="fas fa-search"></i> Search
+              </button>
+            </div>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Batch</th>
+                  <th>Exam Type</th>
+                  <th>Uploaded By</th>
+                  <th>Views</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="paperTableBody">
+                <% if(locals.recentPapers && recentPapers.length > 0) { %>
+                  <% recentPapers.forEach(function(paper) { %>
+                    <tr data-paper-id="<%= paper._id %>">
+                      <td><%= paper.subject === 'None of the above' ? paper.customSubject : paper.subject %></td>
+                      <td><%= paper.batch %></td>
+                      <td><%= paper.examType %></td>
+                      <td><%= paper.uploadedBy %></td>
+                      <td><%= paper.views %></td>
+                      <td>
+                        <a href="/paper/<%= paper._id %>" class="btn btn-sm btn-info">
+                          <i class="fas fa-eye"></i> View
+                        </a>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDeletePaper('<%= paper._id %>')">
+                          <i class="fas fa-trash"></i> Delete
+                        </button>
+                      </td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="6" class="text-center">No papers found.</td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Feedback Tab Content -->
+        <div class="tab-pane fade" id="feedback" role="tabpanel" aria-labelledby="feedback-tab">
+          <div class="search-area">
+            <div class="input-group">
+              <input type="text" id="feedbackSearchInput" class="form-control" placeholder="Search feedback...">
+              <button class="btn btn-primary" type="button" onclick="searchFeedback()">
+                <i class="fas fa-search"></i> Search
+              </button>
+            </div>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Message</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="feedbackTableBody">
+                <% if(locals.recentFeedbacks && recentFeedbacks.length > 0) { %>
+                  <% recentFeedbacks.forEach(function(feedback) { %>
+                    <tr data-feedback-id="<%= feedback._id %>" class="<%= !feedback.isRead ? 'table-warning' : '' %>">
+                      <td><%= feedback.user %></td>
+                      <td><%= feedback.message %></td>
+                      <td><%= new Date(feedback.createdAt).toLocaleString() %></td>
+                      <td>
+                        <span class="badge <%= feedback.isRead ? 'bg-success' : 'bg-warning' %>">
+                          <%= feedback.isRead ? 'Read' : 'Unread' %>
+                        </span>
+                      </td>
+                      <td>
+                        <% if(!feedback.isRead) { %>
+                          <button class="btn btn-sm btn-success" onclick="markFeedbackRead('<%= feedback._id %>')">
+                            <i class="fas fa-check"></i> Mark as Read
+                          </button>
+                        <% } %>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDeleteFeedback('<%= feedback._id %>')">
+                          <i class="fas fa-trash"></i> Delete
+                        </button>
+                      </td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="5" class="text-center">No feedback found.</td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  
+  <!-- Delete User Confirmation Modal -->
+  <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm User Deletion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete this user? This will also delete all their uploaded papers, comments, and feedback.</p>
+          <p class="text-danger"><strong>This action cannot be undone!</strong></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirmDeleteUserBtn">Delete User</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Delete Paper Confirmation Modal -->
+  <div class="modal fade" id="deletePaperModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Paper Deletion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete this paper? This will also delete all associated comments.</p>
+          <p class="text-danger"><strong>This action cannot be undone!</strong></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirmDeletePaperBtn">Delete Paper</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Delete Feedback Confirmation Modal -->
+  <div class="modal fade" id="deleteFeedbackModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Feedback Deletion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete this feedback?</p>
+          <p class="text-danger"><strong>This action cannot be undone!</strong></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirmDeleteFeedbackBtn">Delete Feedback</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let userToDelete, paperToDelete, feedbackToDelete;
+    
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      const content = document.getElementById("content");
+      if (sidebar.style.left === "0px") {
+        sidebar.style.left = "-250px";
+        content.style.marginLeft = "0";
+      } else {
+        sidebar.style.left = "0px";
+        content.style.marginLeft = "250px";
+      }
+    }
+    
+    // User Management Functions
+    function searchUsers() {
+      const searchTerm = document.getElementById('userSearchInput').value.toLowerCase();
+      const rows = document.querySelectorAll('#userTableBody tr');
+      
+      rows.forEach(row => {
+        const email = row.querySelector('td:first-child').textContent.toLowerCase();
+        if (email.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+    
+    function toggleUserBlock(userId, block) {
+      fetch(`/admin/toggle-user-status/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update the UI
+          const row = document.querySelector(`tr[data-user-id="${userId}"]`);
+          if (row) {
+            // Update row class
+            if (data.isBlocked) {
+              row.classList.add('blocked-user');
+            } else {
+              row.classList.remove('blocked-user');
+            }
+            
+            // Update status badge
+            const statusBadge = row.querySelector('td:nth-child(3) .badge');
+            statusBadge.textContent = data.isBlocked ? 'Blocked' : 'Active';
+            statusBadge.className = `badge ${data.isBlocked ? 'badge-blocked' : 'badge-active'}`;
+            
+            // Update button
+            const btn = row.querySelector('.btn-warning, .btn-success');
+            btn.className = `btn btn-sm ${data.isBlocked ? 'btn-success' : 'btn-warning'}`;
+            btn.innerHTML = `<i class="fas ${data.isBlocked ? 'fa-unlock' : 'fa-ban'}"></i> ${data.isBlocked ? 'Unblock' : 'Block'}`;
+            btn.setAttribute('onclick', `toggleUserBlock('${userId}', ${!data.isBlocked})`);
+            
+            // Show feedback to user
+            alert(data.message);
+          }
+        } else {
+          alert('Error: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+      });
+    }
+    
+    function confirmDeleteUser(userId) {
+      userToDelete = userId;
+      const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+      modal.show();
+      
+      document.getElementById('confirmDeleteUserBtn').onclick = function() {
+        deleteUser(userToDelete);
+        modal.hide();
+      };
+    }
+    
+    function deleteUser(userId) {
+      fetch(`/admin/delete-user/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Remove the row from the table
+          const row = document.querySelector(`tr[data-user-id="${userId}"]`);
+          if (row) {
+            row.remove();
+          }
+          alert(data.message);
+        } else {
+          alert('Error: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+      });
+    }
+    
+    // Paper Management Functions
+    function searchPapers() {
+      const searchTerm = document.getElementById('paperSearchInput').value.toLowerCase();
+      const rows = document.querySelectorAll('#paperTableBody tr');
+      
+      rows.forEach(row => {
+        const subject = row.querySelector('td:first-child').textContent.toLowerCase();
+        const batch = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const examType = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        const uploadedBy = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+        
+        if (subject.includes(searchTerm) || batch.includes(searchTerm) || 
+            examType.includes(searchTerm) || uploadedBy.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+    
+    function confirmDeletePaper(paperId) {
+      paperToDelete = paperId;
+      const modal = new bootstrap.Modal(document.getElementById('deletePaperModal'));
+      modal.show();
+      
+      document.getElementById('confirmDeletePaperBtn').onclick = function() {
+        deletePaper(paperToDelete);
+        modal.hide();
+      };
+    }
+    
+    function deletePaper(paperId) {
+      fetch(`/delete-paper/${paperId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Remove the row from the table
+          const row = document.querySelector(`tr[data-paper-id="${paperId}"]`);
+          if (row) {
+            row.remove();
+          }
+          alert(data.message);
+        } else {
+          alert('Error: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+      });
+    }
+    
+    // Feedback Management Functions
+    function searchFeedback() {
+      const searchTerm = document.getElementById('feedbackSearchInput').value.toLowerCase();
+      const rows = document.querySelectorAll('#feedbackTableBody tr');
+      
+      rows.forEach(row => {
+        const user = row.querySelector('td:first-child').textContent.toLowerCase();
+        const message = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        
+        if (user.includes(searchTerm) || message.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+    
+    function markFeedbackRead(feedbackId) {
+      fetch(`/admin/mark-feedback-read/${feedbackId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update the UI
+          const row = document.querySelector(`tr[data-feedback-id="${feedbackId}"]`);
+          if (row) {
+            row.classList.remove('table-warning');
+            const statusBadge = row.querySelector('td:nth-child(4) .badge');
+            statusBadge.textContent = 'Read';
+            statusBadge.className = 'badge bg-success';
+            
+            // Remove the mark as read button
+            const markReadBtn = row.querySelector('.btn-success');
+            if (markReadBtn) {
+              markReadBtn.remove();
+            }
+          }
+        } else {
+          alert('Error updating feedback status');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+      });
+    }
+    
+    function confirmDeleteFeedback(feedbackId) {
+      feedbackToDelete = feedbackId;
+      const modal = new bootstrap.Modal(document.getElementById('deleteFeedbackModal'));
+      modal.show();
+      
+      document.getElementById('confirmDeleteFeedbackBtn').onclick = function() {
+        deleteFeedback(feedbackToDelete);
+        modal.hide();
+      };
+    }
+    
+    function deleteFeedback(feedbackId) {
+      fetch(`/admin/delete-feedback/${feedbackId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Remove the row from the table
+          const row = document.querySelector(`tr[data-feedback-id="${feedbackId}"]`);
+          if (row) {
+            row.remove();
+          }
+          alert(data.message);
+        } else {
+          alert('Error: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+      });
+    }
+  </script>
+</body>
+</html>

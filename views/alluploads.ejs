@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Uploads</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Reuse the same sidebar and general styles from dashboard */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: -250px;
+            background-color: #343a40;
+            padding-top: 20px;
+            transition: left 0.3s ease-in-out;
+            z-index: 1000;
+        }
+        .sidebar a {
+            color: white;
+            display: block;
+            padding: 15px;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #495057;
+        }
+        .content {
+            margin-left: 0;
+            padding: 20px;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        .navbar {
+            background-color: #343a40;
+            color: white;
+            padding: 15px;
+        }
+        .menu-btn {
+            cursor: pointer;
+            font-size: 24px;
+        }
+        .admin-badge {
+            background-color: #dc3545;
+            color: white;
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-left: 10px;
+        }
+        .paper-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            margin-bottom: 20px;
+        }
+        .paper-card:hover {
+            transform: translateY(-5px);
+        }
+        .filter-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .paper-img {
+            max-height: 300px;
+            object-fit: contain;
+            margin: 0 auto;
+            display: block;
+            padding: 15px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <h4 class="text-center text-light">VIT-AP</h4>
+    <hr class="border-light">
+    <a href="/dashboard"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a>
+    <a href="/all-uploads" class="active"><i class="fas fa-images me-2"></i> All Uploads</a>
+    <a href="/dashboard"><i class="fas fa-file-alt me-2"></i> Exam Papers</a>
+    <% if (isAdmin) { %>
+        <a href="/admin" class="text-warning"><i class="fas fa-crown me-2"></i> Admin Panel</a>
+    <% } %>
+    <a href="/logout" class="text-danger"><i class="fas fa-sign-out-alt me-2"></i> Logout</a>
+</div>
+
+<!-- Main Content -->
+<div class="content" id="content">
+    <nav class="navbar d-flex justify-content-between">
+        <span class="menu-btn" onclick="toggleSidebar()">&#9776;</span>
+        <span class="email-text">
+            <%= user.email %>
+            <% if (isAdmin) { %>
+                <span class="admin-badge">Admin</span>
+            <% } %>
+        </span>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Filters -->
+        <div class="filter-section">
+            <h4 class="mb-3">Filters</h4>
+            <div class="row">
+                <div class="col-md-3">
+                    <select class="form-select" id="batchFilter">
+                        <option value="">All Batches</option>
+                        <option value="2022">Batch 2022</option>
+                        <option value="2023">Batch 2023</option>
+                        <option value="2024">Batch 2024</option>
+                        <option value="2025">Batch 2025</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="examFilter">
+                        <option value="">All Exams</option>
+                        <option value="CAT1">CAT 1</option>
+                        <option value="CAT2">CAT 2</option>
+                        <option value="FAT">FAT</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="slotFilter">
+                        <option value="">All Slots</option>
+                        <option>A1</option><option>A2</option>
+                        <option>B1</option><option>B2</option>
+                        <option>C1</option><option>C2</option>
+                        <option>D1</option><option>D2</option>
+                        <option>E1</option><option>E2</option>
+                        <option>F1</option><option>F2</option>
+                        <option>G1</option><option>G2</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary w-100" onclick="applyFilters()">
+                        Apply Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Papers Grid -->
+        <div class="row" id="papersGrid">
+            <% if (papers && papers.length > 0) { %>
+                <% papers.forEach(function(paper) { %>
+                    <div class="col-md-4 paper-item" 
+                         data-batch="<%= paper.batch %>"
+                         data-exam="<%= paper.examType %>"
+                         data-slot="<%= paper.slot %>">
+                        <div class="paper-card">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><%= paper.examType %></h5>
+                                <span class="badge bg-primary"><%= paper.batch %> - <%= paper.slot %></span>
+                            </div>
+                            <img src="<%= paper.path %>" alt="Exam Paper" class="paper-img img-fluid" onclick="openFullscreen('<%= paper.path %>')">
+                            <div class="card-body">
+                                <h6><%= paper.subject === 'None of the above' ? paper.customSubject : paper.subject %></h6>
+                                <p class="text-muted small mb-0">
+                                    Uploaded by: <%= paper.uploadedBy %><br>
+                                    Date: <%= new Date(paper.uploadedAt).toLocaleDateString() %>
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <button class="btn btn-sm btn-primary" onclick="openFullscreen('<%= paper.path %>')">
+                                        <i class="fas fa-expand"></i> View Full
+                                    </button>
+                                    <% if (isAdmin) { %>
+                                        <button class="btn btn-danger btn-sm" onclick="deletePaper('<%= paper._id %>')">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        No papers have been uploaded yet.
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<!-- Fullscreen Modal -->
+<div class="modal fade" id="fullscreenModal" tabindex="-1" aria-labelledby="fullscreenModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="fullscreenModalLabel">Exam Paper View</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body d-flex justify-content-center align-items-center bg-dark">
+                <img src="" id="fullscreenImage" class="img-fluid" style="max-height: 90vh; object-fit: contain;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="zoomInBtn">
+                    <i class="fas fa-search-plus"></i> Zoom In
+                </button>
+                <button type="button" class="btn btn-primary" id="zoomOutBtn">
+                    <i class="fas fa-search-minus"></i> Zoom Out
+                </button>
+                <button type="button" class="btn btn-primary" id="resetZoomBtn">
+                    <i class="fas fa-sync"></i> Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const content = document.getElementById("content");
+        sidebar.style.left = sidebar.style.left === "0px" ? "-250px" : "0px";
+        content.style.marginLeft = sidebar.style.left === "0px" ? "250px" : "0";
+    }
+
+    function applyFilters() {
+        const batch = document.getElementById('batchFilter').value;
+        const exam = document.getElementById('examFilter').value;
+        const slot = document.getElementById('slotFilter').value;
+
+        document.querySelectorAll('.paper-item').forEach(item => {
+            let show = true;
+            
+            if (batch && item.dataset.batch !== batch) show = false;
+            if (exam && item.dataset.exam !== exam) show = false;
+            if (slot && item.dataset.slot !== slot) show = false;
+
+            item.style.display = show ? 'block' : 'none';
+        });
+    }
+
+    function deletePaper(paperId) {
+        if (!confirm('Are you sure you want to delete this paper?')) {
+            return;
+        }
+        
+        fetch('/delete-paper/' + paperId, {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Paper deleted successfully');
+                window.location.reload();
+            } else {
+                alert('Error deleting paper');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the paper');
+        });
+    }
+
+    // Fullscreen image functionality
+    let currentZoom = 1;
+    
+    function openFullscreen(imagePath) {
+        const modal = new bootstrap.Modal(document.getElementById('fullscreenModal'));
+        document.getElementById('fullscreenImage').src = imagePath;
+        modal.show();
+        currentZoom = 1;
+        document.getElementById('fullscreenImage').style.transform = `scale(${currentZoom})`;
+    }
+    
+    // Set up zoom functionality
+    document.getElementById('zoomInBtn').addEventListener('click', function() {
+        if (currentZoom < 3) {
+            currentZoom += 0.25;
+            document.getElementById('fullscreenImage').style.transform = `scale(${currentZoom})`;
+        }
+    });
+    
+    document.getElementById('zoomOutBtn').addEventListener('click', function() {
+        if (currentZoom > 0.5) {
+            currentZoom -= 0.25;
+            document.getElementById('fullscreenImage').style.transform = `scale(${currentZoom})`;
+        }
+    });
+    
+    document.getElementById('resetZoomBtn').addEventListener('click', function() {
+        currentZoom = 1;
+        document.getElementById('fullscreenImage').style.transform = `scale(${currentZoom})`;
+    });
+</script>
+</body>
+</html>
