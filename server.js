@@ -6,12 +6,14 @@ const path = require("path");
 const bcrypt = require("bcrypt");
 const multer = require("multer");
 const fs = require("fs");
+require('dotenv').config();
 
 // Initialize Express
 const app = express();
 
 // Set view engine and middleware
 app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
@@ -420,7 +422,7 @@ app.get('/admin-panel', isAuthenticated, isAdmin, async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(5);
 
-        res.render('admin/dashboard', {
+        res.render('admin', {
             user: req.session.user,
             stats: {
                 totalUsers,
@@ -438,161 +440,10 @@ app.get('/admin-panel', isAuthenticated, isAdmin, async (req, res) => {
         res.status(500).send("Error loading admin dashboard.");
     }
 });
-// 1. First, add a new model for notifications in your models folder (models/notification.js)
 
-
-const notificationSchema = new mongoose.Schema({
-  recipient: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  message: {
-    type: String,
-    required: true
-  },
-  type: {
-    type: String,
-    enum: ['info', 'warning', 'success', 'error'],
-    default: 'info'
-  },
-  isRead: {
-    type: Boolean,
-    default: false
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});
-
-
-// 2. Add routes to handle notifications (routes/admin.js or your main routes file)
-// Send notification to a specific user
-app.post('/admin/send-notification/:userId', isAdmin, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { message, type } = req.body;
-    
-    if (!message) {
-      return res.status(400).json({ success: false, message: 'Notification message is required' });
-    }
-    
-    // Check if user exists
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-    
-    // Create notification
-    const notification = new Notification({
-      recipient: userId,
-      message,
-      type: type || 'info'
-    });
-    
-    await notification.save();
-    
-    return res.json({ 
-      success: true, 
-      message: 'Notification sent successfully',
-      notification
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-// Send notification to all users
-app.post('/admin/send-bulk-notification', isAdmin, async (req, res) => {
-  try {
-    const { message, type, userIds } = req.body;
-    
-    if (!message) {
-      return res.status(400).json({ success: false, message: 'Notification message is required' });
-    }
-    
-    // If userIds is provided, send to specific users, otherwise send to all
-    let recipients = [];
-    if (userIds && userIds.length > 0) {
-      recipients = userIds;
-    } else {
-      const users = await User.find({});
-      recipients = users.map(user => user._id);
-    }
-    
-    // Create notifications for all recipients
-    const notifications = recipients.map(userId => ({
-      recipient: userId,
-      message,
-      type: type || 'info'
-    }));
-    
-    await Notification.insertMany(notifications);
-    
-    return res.json({ 
-      success: true, 
-      message: `Notification sent to ${recipients.length} users successfully` 
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-// Get user's notifications (for the notification icon/panel)
-app.get('/api/notifications', isAuthenticated, async (req, res) => {
-  try {
-    const notifications = await Notification.find({ 
-      recipient: req.user._id 
-    }).sort({ createdAt: -1 });
-    
-    return res.json({ 
-      success: true, 
-      notifications,
-      unreadCount: notifications.filter(n => !n.isRead).length
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-// Mark notification as read
-app.post('/api/notifications/:notificationId/read', isAuthenticated, async (req, res) => {
-  try {
-    const { notificationId } = req.params;
-    
-    const notification = await Notification.findById(notificationId);
-    if (!notification) {
-      return res.status(404).json({ success: false, message: 'Notification not found' });
-    }
-    
-    // Ensure users can only mark their own notifications as read
-    if (notification.recipient.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Unauthorized' });
-    }
-    
-    notification.isRead = true;
-    await notification.save();
-    
-    return res.json({ success: true, message: 'Notification marked as read' });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-// User management page
+// User management page - redirect to main admin page
 app.get('/admin/users', isAuthenticated, isAdmin, async (req, res) => {
-    try {
-        const users = await User.find({}).sort({ email: 1 });
-        res.render('admin/users', { user: req.session.user, users });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Error loading users.");
-    }
+    res.redirect('/admin');
 });
 
 // Block/unblock user
@@ -664,17 +515,9 @@ app.post('/admin/delete-user/:id', isAuthenticated, isAdmin, async (req, res) =>
     }
 });
 
-// Feedback management page
+// Feedback management page - redirect to main admin page
 app.get('/admin/feedback', isAuthenticated, isAdmin, async (req, res) => {
-    try {
-        const feedbacks = await Feedback.find({})
-            .sort({ createdAt: -1 });
-            
-        res.render('admin/feedback', { user: req.session.user, feedbacks });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Error loading feedback.");
-    }
+    res.redirect('/admin');
 });
 
 // Mark feedback as read

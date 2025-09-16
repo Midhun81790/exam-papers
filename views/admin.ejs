@@ -188,7 +188,9 @@
         <i class="fas fa-paper-plane"></i> Notify
       </button>
       <button class="btn btn-sm <%= user.isBlocked ? 'btn-success' : 'btn-warning' %>" 
-              onclick="toggleUserBlock('<%= user._id %>', <%= !user.isBlocked %>)">
+              data-user-id="<%= user._id %>" 
+              data-blocked="<%= user.isBlocked %>"
+              onclick="toggleUserBlock(this.dataset.userId, this.dataset.blocked)">
         <i class="fas <%= user.isBlocked ? 'fa-unlock' : 'fa-ban' %>"></i>
         <%= user.isBlocked ? 'Unblock' : 'Block' %>
       </button>
@@ -326,7 +328,9 @@
                       <td class="user-actions">
                         <% if(!user.isAdmin) { %>
                           <button class="btn btn-sm <%= user.isBlocked ? 'btn-success' : 'btn-warning' %>" 
-                                  onclick="toggleUserBlock('<%= user._id %>', <%= !user.isBlocked %>)">
+                                  data-user-id="<%= user._id %>" 
+                                  data-blocked="<%= user.isBlocked %>"
+                                  onclick="toggleUserBlock(this.dataset.userId, this.dataset.blocked)">
                             <i class="fas <%= user.isBlocked ? 'fa-unlock' : 'fa-ban' %>"></i>
                             <%= user.isBlocked ? 'Unblock' : 'Block' %>
                           </button>
